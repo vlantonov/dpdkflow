@@ -18,3 +18,5 @@ executable('dpdkflow',
   dependencies : [dpdk],
   install      : false,
 )
+
+subdir('tests')

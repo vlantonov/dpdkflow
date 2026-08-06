@@ -109,7 +109,11 @@ static void port_init(uint16_t port_id, struct rte_mempool *mp,
                  port_id, ret);
 
     /* Promiscuous mode so all frames reach the RX queue. */
-    rte_eth_promiscuous_enable(port_id);
+    ret = rte_eth_promiscuous_enable(port_id);
+    if (ret < 0)
+        RTE_LOG(WARNING, USER1,
+                "rte_eth_promiscuous_enable(port %u) failed: %d\n",
+                port_id, ret);
 }
 
 /* ---- teardown ------------------------------------------------------------ */
@@ -117,7 +121,10 @@ static void port_init(uint16_t port_id, struct rte_mempool *mp,
 static void teardown(uint16_t port_id, struct rte_mempool *mp,
                      struct flow_table *ft)
 {
-    rte_eth_dev_stop(port_id);
+    int ret = rte_eth_dev_stop(port_id);
+    if (ret < 0)
+        RTE_LOG(WARNING, USER1,
+                "rte_eth_dev_stop(port %u) failed: %d\n", port_id, ret);
     rte_eth_dev_close(port_id);
     flow_table_destroy(ft);
     rte_mempool_free(mp);

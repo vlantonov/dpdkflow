@@ -19,6 +19,7 @@ void signal_handler_install(void)
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0; /* SA_RESTART intentionally omitted: accept() returns EINTR */
 
-    sigaction(SIGINT,  &sa, NULL);
-    sigaction(SIGTERM, &sa, NULL);
+    if (sigaction(SIGINT,  &sa, NULL) < 0 ||
+        sigaction(SIGTERM, &sa, NULL) < 0)
+        perror("sigaction");
 }

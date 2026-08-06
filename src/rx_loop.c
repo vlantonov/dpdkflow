@@ -43,6 +43,8 @@ static int parse_5tuple(const struct rte_mbuf *m, struct flow_key *out)
 
     /* IHL field is the lower 4 bits of version_ihl, in 32-bit words. */
     uint8_t  ihl     = (ip->version_ihl & 0x0fu) * 4u;
+    if (ihl < sizeof(struct rte_ipv4_hdr))  /* DEF-001: reject malformed IHL */
+        return 0;
     uint32_t ip_off  = sizeof(struct rte_ether_hdr) + ihl;
     const uint8_t *l4 = (const uint8_t *)eth + ip_off;
 
