@@ -31,8 +31,8 @@ The binary is placed at `build/dpdkflow`.
 
 ```bash
 sudo ./build/dpdkflow \
+  -l 0-1 --in-memory --no-pci \
   --vdev "net_af_packet0,iface=eth0" \
-  --in-memory \
   -- \
   --socket /tmp/dpdkflow.sock
 ```

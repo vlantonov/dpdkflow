@@ -2,7 +2,7 @@
 
 **Version:** 0.1.0  
 **Date:** 2026-08-06  
-**Status:** Draft — approved for implementation  
+**Status:** Released — v0.1.0  
 **SRS Reference:** [docs/requirements/SRS.md](../requirements/SRS.md) v0.1.0
 
 ---
@@ -439,7 +439,7 @@ executable('dpdkflow',
 
 ```bash
 # One-time hugepage setup (operator, not application — FR-022):
-echo 128 | sudo tee /sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages
+echo 64 | sudo tee /sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages
 
 # Build
 meson setup build
