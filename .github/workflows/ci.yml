@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y meson ninja-build pkg-config python3-pyelftools
+          sudo apt-get install -y dpdk libdpdk-dev
+
+      - name: Configure
+        run: meson setup build
+
+      - name: Build
+        run: ninja -C build
+
+      - name: Run unit tests (no DPDK required)
+        run: ./build/tests/test_flow_key && ./build/tests/test_ip_format
+
+      - name: Upload build logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: meson-logs
+          path: build/meson-logs/
+
+  lint:
+    runs-on: ubuntu-22.04
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install clang-tidy and dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang clang-tidy pkg-config
+          sudo apt-get install -y dpdk libdpdk-dev
+
+      - name: Run clang-tidy
+        run: |
+          clang-tidy src/*.c -- $(pkg-config --cflags libdpdk) -Isrc
