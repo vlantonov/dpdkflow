@@ -2,6 +2,7 @@
 #include "signal_handler.h"
 
 #include <signal.h>
+#include <stdio.h>
 
 volatile sig_atomic_t g_stop = 0;
 

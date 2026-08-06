@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <string.h>
 #include <inttypes.h>
+#include <stdio.h>
 #include <netinet/in.h>
 
 /* ---- streaming JSON state passed through flow_table_foreach callback ---- */
