@@ -2,6 +2,7 @@
 #include "rx_loop.h"
 
 #include <string.h>
+#include <netinet/in.h>
 
 #include <rte_ethdev.h>
 #include <rte_mbuf.h>
