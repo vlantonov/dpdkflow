@@ -73,12 +73,12 @@ void flow_table_update(struct flow_table *ft, const struct flow_key *key)
     if (ret >= 0) {
         /* Existing flow: hot path — no hash lock, just atomic counter bump. */
         struct flow_entry *entry = (struct flow_entry *)data;
-        __atomic_fetch_add(&entry->count, 1, __ATOMIC_RELAXED);
+        atomic_fetch_add_explicit(&entry->count, 1, memory_order_relaxed);
         return;
     }
 
     /* New flow: claim the next pool slot with an atomic increment. */
-    uint32_t slot = __atomic_fetch_add(&ft->pool_used, 1, __ATOMIC_RELAXED);
+    uint32_t slot = atomic_fetch_add_explicit(&ft->pool_used, 1, memory_order_relaxed);
     if (slot >= ft->max_flows) {
         /* Table full; emit one warning then silently drop new flows. */
         static int warned = 0;
@@ -94,7 +94,7 @@ void flow_table_update(struct flow_table *ft, const struct flow_key *key)
 
     struct flow_entry *entry = &ft->entries[slot];
     entry->key = *key;
-    __atomic_store_n(&entry->count, 1, __ATOMIC_RELAXED);
+    atomic_store_explicit(&entry->count, 1, memory_order_relaxed);
 
     ret = rte_hash_add_key_data(ft->hash, key, entry);
     if (ret < 0)
@@ -104,7 +104,7 @@ void flow_table_update(struct flow_table *ft, const struct flow_key *key)
 
 void flow_table_incr_other(struct flow_table *ft)
 {
-    __atomic_fetch_add(&ft->other, 1, __ATOMIC_RELAXED);
+    atomic_fetch_add_explicit(&ft->other, 1, memory_order_relaxed);
 }
 
 void flow_table_foreach(struct flow_table *ft, flow_iter_cb cb, void *arg)
@@ -115,12 +115,12 @@ void flow_table_foreach(struct flow_table *ft, flow_iter_cb cb, void *arg)
 
     while (rte_hash_iterate(ft->hash, &key, &data, &iter) >= 0) {
         struct flow_entry *entry = (struct flow_entry *)data;
-        flow_count_t count = __atomic_load_n(&entry->count, __ATOMIC_RELAXED);
+        flow_count_t count = atomic_load_explicit(&entry->count, memory_order_relaxed);
         cb((const struct flow_key *)key, count, arg);
     }
 }
 
 uint64_t flow_table_other_count(const struct flow_table *ft)
 {
-    return __atomic_load_n(&ft->other, __ATOMIC_RELAXED);
+    return atomic_load_explicit(&ft->other, memory_order_relaxed);
 }
