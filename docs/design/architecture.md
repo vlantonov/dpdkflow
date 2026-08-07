@@ -1,8 +1,8 @@
 # dpdkflow — Architecture Document
 
-**Version:** 0.1.0  
-**Date:** 2026-08-06  
-**Status:** Released — v0.1.0  
+**Version:** 0.1.2  
+**Date:** 2026-08-07  
+**Status:** Released — v0.1.2  
 **SRS Reference:** [docs/requirements/SRS.md](../requirements/SRS.md) v0.1.0
 
 ---
@@ -39,7 +39,7 @@
  │  │  check g_stop → exit loop                            │   │
  │  └────────────────────┬─────────────────────────────────┘   │
  │                       │ rte_hash_lookup / rte_hash_add_key   │
- │                       │ __atomic_fetch_add on count field    │
+ │                       │ atomic_fetch_add_explicit on count   │
  │              ┌────────▼──────────────┐                      │
  │              │      flow_table       │                      │
  │              │  rte_hash (key→idx)   │                      │
@@ -48,7 +48,7 @@
  │              │    other              │                      │
  │              └────────▲──────────────┘                      │
  │                       │ rte_hash_iterate                     │
- │                       │ __atomic_load_n on count field       │
+ │                       │ atomic_load_explicit on count field  │
  │  lcore 0 ── main + stats_server                              │
  │  ┌──────────────────────────────────────────────────────┐   │
  │  │  UNIX socket accept (O_NONBLOCK + 10 ms usleep poll) │   │
@@ -194,8 +194,8 @@ struct flow_table {
 
 `flow_table_update` algorithm:
 1. `rte_hash_lookup_data(ft->hash, key, (void **)&entry)` — fast read path
-2. If found: `__atomic_fetch_add(&entry->count, 1, __ATOMIC_RELAXED)`
-3. If `ENOENT` (new flow): atomically claim next pool slot via `__atomic_fetch_add(&ft->pool_used, 1, ...)`; if slot < `max_flows`: initialise entry, `rte_hash_add_key_data()`; else log warning once and drop silently.
+2. If found: `atomic_fetch_add_explicit(&entry->count, 1, memory_order_relaxed)`
+3. If `ENOENT` (new flow): atomically claim next pool slot via `atomic_fetch_add_explicit(&ft->pool_used, 1, ...)`; if slot < `max_flows`: initialise entry, `rte_hash_add_key_data()`; else log warning once and drop silently.
 
 **Dependencies:** `librte_hash`, `librte_malloc`; no other project modules
 
@@ -336,15 +336,15 @@ volatile sig_atomic_t g_stop = 0;
 
 Counter increment (RX lcore, hot path):
 ```c
-__atomic_fetch_add(&entry->count, 1, __ATOMIC_RELAXED);
+atomic_fetch_add_explicit(&entry->count, 1, memory_order_relaxed);
 ```
 
 Counter read (stats lcore):
 ```c
-flow_count_t c = __atomic_load_n(&entry->count, __ATOMIC_RELAXED);
+flow_count_t c = atomic_load_explicit(&entry->count, memory_order_relaxed);
 ```
 
-`__ATOMIC_RELAXED` is sufficient: the stats snapshot is best-effort (a count may lag by one or two packets during the read). This is standard practice for monitoring counters and avoids unnecessary memory fences on the hot path.
+`memory_order_relaxed` is sufficient: the stats snapshot is best-effort (a count may lag by one or two packets during the read). This is standard practice for monitoring counters and avoids unnecessary memory fences on the hot path.
 
 ### 5.4 Hash Table Concurrency
 
@@ -412,7 +412,7 @@ To comply with NFR-008, no intermediate buffer holding the full JSON response is
 
 ```meson
 project('dpdkflow', 'c',
-  version         : '0.1.0',
+  version         : '0.1.2',
   default_options : ['c_std=c17', 'warning_level=2'],
 )
 
@@ -492,7 +492,7 @@ ln -s build/compile_commands.json .
 7. **Port init:** `port_init(port_id=0, mp, ring_size=1024)` — `rte_eth_dev_configure` (1 RX queue, 0 TX queues), `rte_eth_rx_queue_setup`, `rte_eth_dev_start`. Port 0 is the first vdev bound by `--vdev`.
 8. **RX lcore launch:** `rte_eal_remote_launch(rx_loop_run, &rx_cfg, rx_lcore_id)` — lcore 1 begins its polling loop immediately; the AF_PACKET ring may be empty but the lcore spins in `rte_eth_rx_burst`.
 9. **Stats server setup:** `stats_server_run()` creates the UNIX socket, `bind`s, `listen`s, sets `O_NONBLOCK`, then enters the accept loop.
-10. **First packet received:** kernel delivers a frame to the AF_PACKET ring → DPDK copies into a free mbuf → `rte_eth_rx_burst` returns it → `parse_5tuple` extracts the 5-tuple → `flow_table_update` finds no existing entry → claims pool slot 0 → `rte_hash_add_key_data` inserts key → `__atomic_fetch_add` sets count to 1.
+10. **First packet received:** kernel delivers a frame to the AF_PACKET ring → DPDK copies into a free mbuf → `rte_eth_rx_burst` returns it → `parse_5tuple` extracts the 5-tuple → `flow_table_update` finds no existing entry → claims pool slot 0 → `rte_hash_add_key_data` inserts key → `atomic_fetch_add_explicit` sets count to 1.
 
 ---
 
@@ -556,4 +556,4 @@ ln -s build/compile_commands.json .
 
 ---
 
-*End of architecture document — dpdkflow v0.1.0*
+*End of architecture document — dpdkflow v0.1.2*
