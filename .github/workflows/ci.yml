@@ -30,13 +30,13 @@ jobs:
 
       - name: Upload build logs on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: meson-logs
           path: build/meson-logs/
 
       - name: Upload compile_commands for lint
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: compile-commands
           path: build/compile_commands.json
