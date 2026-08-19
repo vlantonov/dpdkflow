@@ -30,7 +30,7 @@ jobs:
         run: ./build/tests/test_flow_key && ./build/tests/test_ip_format
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: build/dpdkflow
           token: ${{ secrets.GITHUB_TOKEN }}
